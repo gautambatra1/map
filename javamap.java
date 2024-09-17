@@ -1,7 +1,13 @@
 import static org.junit.jupiter.api.Assertions.*;
 
+import javax.xml.datatype.DatatypeFactory;
+import javax.xml.datatype.XMLGregorianCalendar;
+import javax.xml.datatype.DatatypeConfigurationException;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.GregorianCalendar;
 
 public class SiphRCCAMapperTest {
 
@@ -19,9 +25,11 @@ public class SiphRCCAMapperTest {
     private Amount lastStatementBalance;
     private Amount paidAmount;
     private Amount interestSavingBalance;
+    private XMLGregorianCalendar nextPaymentDueDate;
+    private XMLGregorianCalendar lastPaymentPaidDate;
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws DatatypeConfigurationException {
         // Initialize the mock objects
         retrieveCreditCardAccount = new RetrieveCreditCardAccountResponse();
         account = new Account();
@@ -44,12 +52,16 @@ public class SiphRCCAMapperTest {
         paidAmount.setAmount(500.0);
         interestSavingBalance.setAmount(20.0);
 
+        // Create XMLGregorianCalendar dates
+        nextPaymentDueDate = createXMLGregorianCalendar("2023-12-01");
+        lastPaymentPaidDate = createXMLGregorianCalendar("2023-10-01");
+
         // Set values in account
         currentPayment.setMinimumDueAmount(minimumDueAmount);
         currentPayment.setInterestSavingBalance(interestSavingBalance);
-        nextPayment.setDueDate("2023-12-01");
+        nextPayment.setDueDate(nextPaymentDueDate);
         lastPayment.setPaidAmount(paidAmount);
-        lastPayment.setPaidDate("2023-10-01");
+        lastPayment.setPaidDate(lastPaymentPaidDate);
 
         repaymentRisk.setTotalPastDueAmount(totalPastDueAmount);
 
@@ -78,11 +90,18 @@ public class SiphRCCAMapperTest {
         assertEquals(1000.0, result.getTotalOutstandingBalance());
         assertEquals(100.0, result.getMinPaymentDue());
         assertEquals(50.0, result.getPastDueAmt());
-        assertEquals("2023-12-01", result.getPmntDueDate());
+        assertEquals(nextPaymentDueDate.toString(), result.getPmntDueDate().toString());
         assertEquals(1200.0, result.getStatementBalance());
         assertEquals(500.0, result.getLastPaymentAmount());
-        assertEquals("2023-10-01", result.getLastPaymentDate());
+        assertEquals(lastPaymentPaidDate.toString(), result.getLastPaymentDate().toString());
         assertEquals(20.0, result.getIntSavingBalance());
         // Add more assertions for other fields as necessary
+    }
+
+    // Utility method to create XMLGregorianCalendar from a String date
+    private XMLGregorianCalendar createXMLGregorianCalendar(String dateStr) throws DatatypeConfigurationException {
+        GregorianCalendar gregorianCalendar = new GregorianCalendar();
+        gregorianCalendar.setTime(java.sql.Date.valueOf(dateStr));
+        return DatatypeFactory.newInstance().newXMLGregorianCalendar(gregorianCalendar);
     }
 }
